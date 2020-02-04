@@ -24,6 +24,7 @@ setup(
     ],
     python_requires='>=3.6',
     keywords='coursera sdk cli tool oauth2',
+    url='https://github.com/blittlemore-coursera/coaclient/',
     author='Anton Makrushyn',
     author_email='ansermak@gmail.com',
     license='Apache',

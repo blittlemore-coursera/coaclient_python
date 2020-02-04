@@ -2,7 +2,7 @@ Coursera OAuth2 client
 ======================
 
 This project is a library consisting of a command-line interface and a client for interacting with Coursera's OAuth2 authorizes APIs.
-It's a rewritten courseraoauth2client(https://github.com/coursera/courseraoauth2client) with python3 support.
+It's a rewritten `courseraoauth2client <https://github.com/coursera/courseraoauth2client>`_ with python3 support.
 
 Installation
 ------------
