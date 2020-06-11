@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright 2020 Coursera
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,153 +11,310 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
-Coursera's OAuth2 client
+Coursera OAuth2 client command
 
-You may install it from source, or via pip.
+Command: config
 """
 
-import argparse
 import logging
-import sys
+import os
+import re
 import time
 
 import requests
-import status
 
 from coaclient import oauth2
+from coaclient.cli import Parser, SubParser, Arg, Actions
+from coaclient.oauth2 import Config
+from coaclient.oauth2.utils import validate_input_data
+from .exceptions import CoaClientCommandException
+
+__all__ = (
+    "add_command",
+)
+
+
+_REGEXP_FILE_NAME = re.compile(r'[^\w\-\_.]')
+
+
+def add_app(args):
+    """
+    Adding configuration and credentials for a specific application for
+    authorizing in Coursera OAuth2.0 client.
+    """
+    app_name = args.app
+    config_file = args.config if args.config is not None else None
+    config = Config.load_from_file(filename=config_file)
+    if not config.has_section(app_name) or args.reconfigure is True:
+        logging.info(
+            "Configuration application \"%s\" for Coursera OAuth2.0 client.",
+            app_name
+        )
+        # Get client_id
+        client_id = args.client_id or validate_input_data(
+            "Please enter the client id for your application: ",
+            empty=False
+        )
+        # Get client_secret
+        client_secret = args.client_secret or validate_input_data(
+            "Please enter the client secret for your application: ",
+            empty=False
+        )
+        # Get scopes
+        if args.scopes:
+            scopes = args.scopes
+        else:
+            scopes = validate_input_data(
+                "Please enter the requested scopes of the app not including "
+                "\"view_profile\", separated by whitespace\n(for example: "
+                "access_business_api): "
+            )
+
+        # Removing app section if exist
+        config.remove_section(app_name)
+        # Adding new empty app section
+        config.add_section(app_name)
+        # Adding application credentials to config
+        config.set(app_name, "client_id", client_id)
+        config.set(app_name, "client_secret", client_secret)
+        config.set(app_name, "scopes", "view_profile {scopes}".format(
+            scopes=scopes
+        ))
+        config.set(
+            app_name, "token_cache_file", "{app_name}_oauth2_cache.co".format(
+                app_name=re.sub(_REGEXP_FILE_NAME, "_", app_name).lower()
+            )
+        )
+
+        # Save config to file
+        config.save(filename=config_file)
+        logging.info("Application \"%s\" configured.", app_name)
+    else:
+        logging.info(
+            "Application \"%s\" is already configure and saved to the config "
+            "file. You can reconfigure this application if you remove the "
+            "config file or use \"%s\" flag when adding configuration for "
+            "your application.", app_name, "--reconfigure"
+        )
 
 
 def authorize(args):
     """
-    Authorizes Coursera's OAuth2 client for using coursera.org API servers for
-    a specific application
+    Authorizes Coursera OAuth2.0 client for a specific application
+    for using coursera.org API
     """
-    oauth2_instance = oauth2.build_oauth2(args.app, args)
-    oauth2_instance.build_authorizer()
-    logging.info('Application "%s" authorized!', args.app)
+    if oauth2.build(args.app, args=args).authorizer:
+        logging.info("Application \"%s\" authorized.", args.app)
+    else:
+        logging.error("Something wrong. Application \"%s\" is not "
+                      "authorized.", args.app)
 
 
 def check_auth(args):
     """
-    Checks coaclient's connectivity to the coursera.org API servers
+    Checking if Coursera OAuth2.0 client connectivity to the coursera.org API
     for a specific application
     """
-    oauth2_instance = oauth2.build_oauth2(args.app, args)
-    auth = oauth2_instance.build_authorizer()
-    my_profile_url = (
-        'https://api.coursera.org/api/externalBasicProfiles.v1?'
-        'q=me&fields=name'
+    profile_url = ("https://api.coursera.org/api/externalBasicProfiles.v1?"
+                   "q=me&fields=name")
+    response = requests.get(
+        profile_url, auth=oauth2.build(args.app, args=args).authorizer
     )
-    req = requests.get(my_profile_url, auth=auth)
-    if req.status_code != status.HTTP_200_OK:
-        logging.error(
-            'Received response code %s from the basic profile API.',
-            req.status_code
-        )
-        logging.debug('Response body:\n%s', req.text)
-        sys.exit(1)
-    try:
-        external_id = req.json()['elements'][0]['id']
-    except (AttributeError, TypeError, IndexError):
-        logging.error(
-            'Could not parse the external id out of the response body %s',
-            req.text
-        )
-        sys.exit(1)
 
-    try:
-        name = req.json()['elements'][0]['name']
-    except (AttributeError, TypeError, IndexError):
-        logging.error(
-            'Could not parse the name out of the response body %s', req.text
-        )
-        sys.exit(1)
+    if response.status_code != requests.codes.ok:  # pylint: disable=no-member
+        logging.error('Received response status code %s from the basic '
+                      'profile API.', response.status_code)
+        logging.debug('Response body: %s', response.text)
+        raise Exception('Received response status code {code} from the basic '
+                        'profile API.'.format(code=response.status_code))
 
-    if args.loglevel not in ['WARNING', 'ERROR']:
-        print('Name: %s' % name)
-        print('External ID: %s' % external_id)
+    response_data = response.json()
+
+    if "elements" in response_data and len(response_data["elements"]) > 0:
+        element = response_data["elements"][0]
+
+        if not isinstance(element, dict):
+            raise CoaClientCommandException(
+                "An invalid data type was received from Coursera OAuth2.0 "
+                "API. Type: {type}, Data: {element}".format(
+                    type=type(element), element=element
+                )
+            )
+
+        external_id = element.get("id")
+
+        if external_id is None:
+            raise CoaClientCommandException(
+                "Could not find the 'external_id' from the response body. "
+                "Data: {element}".format(element=element)
+            )
+
+        name = element.get("name")
+
+        if name is None:
+            raise CoaClientCommandException(
+                "Could not find the 'name' from the response body. Data: "
+                "{element}".format(element=element)
+            )
+
+        logging.info("Name: %s", name)
+        logging.info("External ID: %s", external_id)
+    else:
+        raise CoaClientCommandException(
+            "Incorrect data was received from the Coursera OAuth2.0 API. "
+            "Data: {response_data}".format(response_data=response_data)
+        )
 
 
 def display_auth_cache(args):
     """
-    Writes to the screen the state of the authentication cache. (For debugging
-    authentication issues.) BEWARE: DO NOT email the output of this command!!!
-    You must keep the tokens secure. Treat them as passwords.
+    Output to the screen the state of the authentication cache.
+
+    DEVELOPER NOTE: For debugging authentication issues.
+
+    BEWARE: DO NOT send them to third-party service or via email!!!
+    You must keep the tokens secure.
+    Treat them as passwords.
     """
-    oauth2_instance = oauth2.build_oauth2(args.app, args)
-    if args.loglevel in ['WARNING', 'ERROR']:
-        return
+    auth = oauth2.build(args.app, args=args)
 
-    token = oauth2_instance.token_cache['token']
-    if not args.no_truncate and token is not None:
-        token = token[:10] + '...'
-    print("Auth token: %s" % token)
+    token = auth.cache.get('token', '')
+    expires = auth.cache.get('expires', 0.0) - time.time()
+    refresh = auth.cache.get('refresh', None)
+    if not args.no_truncate:
+        token = "{}**********{}".format(token[:3], token[-3:])
+        if refresh is not None:
+            refresh = "{}**********{}".format(refresh[:3], refresh[-3:])
 
-    expires_time = oauth2_instance.token_cache['expires']
-    expires_in = int((expires_time - time.time()) * 10) / 10.0
-    message = (
-        "Auth token is` already expired" if expires_in < 0
-        else "Auth token expires in: %s seconds." % expires_in
+    logging.info("Authorization token: %s", token)
+    logging.info(
+        "Authorization token is already expired."
+        if expires < 0 else
+        "Authorization token expires in %.2f seconds",
+        expires
     )
-    print(message)
-
-    if 'refresh' in oauth2_instance.token_cache:
-        refresh = oauth2_instance.token_cache['refresh']
-        if not args.no_truncate and refresh is not None:
-            refresh = refresh[:10] + '...'
-        print("Refresh token: %s" % refresh)
+    if refresh is not None:
+        logging.info("Refresh token: %s", refresh)
     else:
-        print("No refresh token found.")
+        logging.warning("Refresh token not found.")
 
 
-def delete_app(args):
-    """Delete application from configuration file if application exists"""
-    oauth2.delete_application(args.app)
-
-
-def parser(subparsers):
+def delete(args):
     """
-    Create the parser for the configure subcommand. (authentication / etc.)
+    Delete the application from the configuration if the application exists.
     """
-    parser_config = subparsers.add_parser(
-        'config', help='Configure %(prog)s for operation!'
-    )
-    app_subparser = argparse.ArgumentParser(add_help=False)
-    app_subparser.add_argument(
-        '--app', required=True, help='Application to configure'
-    )
-    app_subparser.add_argument(
-        '--reconfigure', action='store_true', help='Reconfigure existing app?'
-    )
+    # oauth2.delete_application(args.app)
+    app_name = args.app
+    config_file = args.config if args.config is not None else None
+    config = Config.load_from_file(filename=config_file)
+    if not config.has_section(app_name):
+        raise CoaClientCommandException(
+            "Configuration for {app_name} application does not exist or "
+            "already removed from configuration file.".format(
+                app_name=app_name
+            )
+        )
 
-    config_subparsers = parser_config.add_subparsers()
+    choice = validate_input_data(
+        "Are you absolutely sure that you want to delete the application "
+        "{app_name}? (Y/N): ".format(app_name=app_name)
+    ).strip().lower()
 
-    parser_authorize = config_subparsers.add_parser(
-        'authorize', help=authorize.__doc__, parents=[app_subparser])
-    parser_authorize.set_defaults(func=authorize)
+    if choice in ("yes", "y"):
+        logging.info("Deleting the application \"%s\"", app_name)
+        cache_file = os.path.join(
+            config.get(config.OAUTH2_SECTION, "token_cache_path"),
+            config.get(app_name, "token_cache_file")
+        )
+        if os.path.exists(cache_file) and os.path.isfile(cache_file):
+            os.remove(cache_file)
+        config.remove_section(app_name)
+        config.save(config_file)
+        logging.info("Application \"%s\" was removed", app_name)
 
-    # Ensure your auth is set up correctly
-    parser_check_auth = config_subparsers.add_parser(
-        'check-auth', help=check_auth.__doc__, parents=[app_subparser]
-    )
-    parser_check_auth.set_defaults(func=check_auth)
 
-    parser_local_cache = config_subparsers.add_parser(
-        'display-auth-cache',
-        help=display_auth_cache.__doc__,
-        parents=[app_subparser]
+def add_command(cli_factory):
+    """
+    Create config command with command handlers for configure sub commands and
+    add to the Coursera's CLI
+    """
+    config = Parser(
+        name="config",
+        help="Configure %(prog)s for OAuth2.0 operations",
+        subparser=SubParser()
     )
-    parser_delete = config_subparsers.add_parser(
-        'delete', help=delete_app.__doc__, parents=[app_subparser]
-    )
-    parser_delete.set_defaults(func=delete_app)
-    parser_local_cache.set_defaults(func=display_auth_cache)
-    parser_local_cache.add_argument(
-        '--no-truncate',
-        action='store_true',
-        help='Do not truncate the keys [DANGER!!]'
-    )
+    cli_factory.parser.subparser.parsers.append(config)
+    cli_factory.add_arguments(app=Arg(
+        flags=("-a", "--app"),
+        type=str,
+        required=True,
+        help="Name of application to configure"
+    ), reconfigure=Arg(
+        flags=("--reconfigure",),
+        action=Actions.STORE_TRUE,
+        help="Reconfigure existing application."
+    ), no_truncate=Arg(
+        flags=("--no-truncate",),
+        action=Actions.STORE_TRUE,
+        help="[!!! DANGER !!!] Do not truncate the keys. [!!! DANGER !!!].\n"
+             "Do that on your own risk and we think you understand that "
+             "you do."
+    ), client_id=Arg(
+        flags=("--client-id",),
+        type=str,
+        help="Application client id."
+    ), client_secret=Arg(
+        flags=("--client-secret",),
+        type=str,
+        help="Application client secret."
+    ), scopes=Arg(
+        flags=("--scopes",),
+        action=Actions.APPEND,
+        type=str,
+        help="Application scopes. (E.g: view_profile or access_business_api)"
+    ))
 
-    return parser_config
+    # Create sub commands for config command
+    # 1. add
+    config.subparser.parsers.append(Parser(
+        name="add",
+        func=add_app,
+        help="Adding configuration and credentials for a specific application "
+             "for authorizing in Coursera OAuth2.0 client.",
+        args=['app', 'reconfigure', 'client_id', 'client_secret', 'scopes']
+    ))
+    # 2. authorize
+    config.subparser.parsers.append(Parser(
+        name="authorize",
+        func=authorize,
+        help="Authorizes Coursera OAuth2.0 client for a specific application"
+             " for using coursera.org API",
+        args=['app', ]
+    ))
+    # 3. check-auth
+    config.subparser.parsers.append(Parser(
+        name="check-auth",
+        func=check_auth,
+        help="Check Coursera OAuth2.0 client connectivity to the coursera.org "
+             "API for a specific application",
+        args=['app', ]
+    ))
+    # 4. display-auth-cache
+    config.subparser.parsers.append(Parser(
+        name="display-auth-cache",
+        func=display_auth_cache,
+        help="Output to the screen the state of the authentication cache.\n"
+             "BEWARE: DO NOT send them to third-party service or via "
+             "email!!!\nYou must keep the tokens secure.\nTreat them as "
+             "passwords.",
+        args=['app', 'no_truncate']
+    ))
+    # 5. delete
+    config.subparser.parsers.append(Parser(
+        name="delete",
+        func=delete,
+        help="Delete the application from configuration file if the "
+             "application exists",
+        args=['app', ]
+    ))

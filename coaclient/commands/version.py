@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright 2020 Coursera
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,38 +11,47 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
-Coursera's OAuth2 client
+Coursera OAuth2 client command
 
-You may install it from source, or via pip.
+Command: version
 """
 
 import sys
 
 from coaclient import __version__
+from coaclient.cli import Parser
+
+from coaclient.log import LogLevels
+
+__all__ = (
+    "add_command",
+)
+
+_LOGS_LEVELS = [
+    LogLevels.get_level_name(LogLevels.WARNING),
+    LogLevels.get_level_name(LogLevels.ERROR)
+]
 
 
-def command_version(args):
+def version(args):
     """
-    Gets application version
+    Output the application version
     """
-
-    if args.loglevel in ['WARNING', 'ERROR']:
-        print(__version__)
-    else:
-        print(
-            "Your %(prog)s's version is:\n\t%(version)s" %
-            {"prog": sys.argv[0].split('/')[-1], "version": __version__}
-        )
+    msg = "Your {prog}'s version is: {version}s".format(
+        prog=sys.argv[0].split('/')[-1], version=__version__
+    )
+    if args.log_level in _LOGS_LEVELS:
+        msg = __version__
+    print(msg)
 
 
-def parser(subparsers):
-    "Build an argparse argument parser to parse the command line."
-    # create the parser for the version subcommand.
-    parser_version = subparsers.add_parser(
-        'version',
-        help="Output the version of %(prog)s to the console.")
-    parser_version.set_defaults(func=command_version)
-
-    return parser_version
+def add_command(cli_factory):
+    """
+    Create version command with command handler and add to the Coursera's CLI
+    """
+    cli_factory.parser.subparser.parsers.append(Parser(
+        name="version",
+        help="Output the version %(prog)s.",
+        func=version
+    ))

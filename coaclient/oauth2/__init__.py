@@ -11,9 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Coaclient module """
-from .version import __version__
+"""
+Coursera OAuth2.0 client library
+"""
+
+from .client import build
+from .config import Config
+
 
 __all__ = (
-    "__version__",
+    "build",
+    "Config",
 )

@@ -15,7 +15,7 @@ def readme():
 setup(
     name='coaclient',
     version=__version__,
-    description='An OAuth2 client for the Coursera App Platform.',
+    description='OAuth2.0 client for the Coursera App Platform.',
     long_description=readme(),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
@@ -25,17 +25,22 @@ setup(
     python_requires='>=3.6',
     keywords='coursera sdk cli tool oauth2',
     url='https://github.com/blittlemore-coursera/coaclient/',
-    author='Anton Makrushyn',
-    author_email='ansermak@gmail.com',
+    author='Ievgen Arbuznykov, Anton Makrushyn',
+    author_email='xxxantikvarxxx@gmail.com, ansermak@gmail.com',
     license='Apache',
     entry_points={
         'console_scripts': [
             'coaclient = coaclient.main:main',
         ],
     },
-    packages=['coaclient', 'coaclient.commands'],
+    packages=[
+        'coaclient',
+        'coaclient.commands',
+        'coaclient.cli',
+        'coaclient.oauth2'
+    ],
     install_requires=[
-        'requests>=2.22.0',
+        'requests>=2.23.0',
         'semver>=2.9.0',
         'python-status==1.0.1'
     ],

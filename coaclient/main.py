@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2020 Coursera
 #
@@ -16,61 +16,86 @@
 
 """
 Coursera's OAuth2 client library.
-
-You may install it from source, or via pip.
 """
-
-import argparse
 import logging
-import sys
 
-from coaclient import commands
-from coaclient import utils
+from coaclient import (
+    commands, constants
+)
+from coaclient.cli import (
+    CLIFactory, Arg, Parser, SubParser
+)
+from coaclient.commands.exceptions import CoaClientCommandException
+from coaclient.log import add_logging
+from coaclient.oauth2.exceptions import (
+    OAuth2ClientException,
+    OAuth2ConfigError,
+    OAuth2CacheException,
+    OAuth2TokenExpiredError
+)
 
 
-def build_parser():
-    """Build an argparse argument parser to parse the command line."""
-    parser = argparse.ArgumentParser(
-        description="""Coursera OAuth2 client CLI. This tool
-        helps users of the Coursera App Platform to programmatically access
-        Coursera APIs.""",
-        epilog="""Please file bugs on github at:
-        https://github.com/blittlemore-coursera/coaclient/issues
-        If you
-        would like to contribute to this tool's development, check us out at:
-        https://github.com/blittlemore-coursera/coaclient
-        """)
-    parser.add_argument('-c', '--config', help='the configuration file to use')
-    utils.add_logging_parser(parser)
+def build_cli():
+    """
+    Build CLI for use Coursera OAuth2.0 client library
 
-    # We support multiple subcommands. These subcommands have their own
-    # subparsers. Each subcommand should set a default value for the 'func'
-    # option. We then call the parsed 'func' function, and execution carries on
-    # from there.
-    subparsers = parser.add_subparsers()
+    return: CLIParser
+    """
+    cli_factory = CLIFactory(Parser(
+        prog=constants.COURSERA_PROG_NAME, subparser=SubParser()
+    ))
+    # Initialize main used arguments
+    cli_factory.add_arguments(
+        config=Arg(
+            flags=('-c', '--config'),
+            type=str,
+            help="Path to your custom the configuration file to use."
+        )
+    )
+    cli_factory.parser.args.append('config')
+    # Add logging configuration to Coursera CLI
+    add_logging(cli_factory)
 
-    commands.config.parser(subparsers)
-    commands.version.parser(subparsers)
+    # Add CLI commands
+    commands.version.add_command(cli_factory)
+    commands.config.add_command(cli_factory)
 
-    return parser
+    return cli_factory.get_cli(
+        description=constants.COURSERA_CLI_DESCRIPTION,
+        epilog=constants.COURSERA_CLI_EPILOG
+    )
 
 
 def main():
-    """Boots up the command line tool"""
-    logging.captureWarnings(True)
-    parser = build_parser()
-    args = parser.parse_args()
+    """
+    Creating and initializing the CLI for processing input operations
+    """
+    cli = build_cli()
+    args = cli.parse_args()
     # Configure logging
     args.setup_logging(args)
-    # Dispatch into the appropriate subcommand function.
+    logging.debug("[!!! DANGER !!!] Please do not use DEBUG mode for the "
+                  "log file in production. Do it only on you own risk. "
+                  "[!!! DANGER !!!]")
+
+    status, message = 0, ""
     try:
-        return args.func(args)
+        args.func(args)
     except AttributeError:
-        parser.print_help()
-        parser.exit()
-    except:
-        logging.exception('There were problems running the command.')
-        sys.exit(1)
+        status, message = (
+            1, "Sub-command didn't set for processing your operation. "
+               "Please see in `coaclient --help` how to use coaclient.\n"
+        )
+    except (
+            CoaClientCommandException,
+            OAuth2ClientException,
+            OAuth2ConfigError,
+            OAuth2CacheException,
+            OAuth2TokenExpiredError
+    ) as err:
+        status, message = (1, "{err}\n".format(err=str(err)))
+    finally:
+        cli.exit(status, message)
 
 
 if __name__ == "__main__":

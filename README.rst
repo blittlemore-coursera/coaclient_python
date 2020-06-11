@@ -47,7 +47,13 @@ Configures the Coursera OAuth2 client library.
 Examples:
 ::
 
-    coaclient config authorize --app APP
+    coaclient config add --app APP_NAME
+
+Adds configuration for a new application to coaclient. And also prepares new
+storage for application authorization tokens in coaclient.
+::
+
+    coaclient config authorize --app APP_NAME
 
 Configures the tool to go through the `authorization secret <https://tools.ietf.org/html/rfc6749#section-4.1>`_ flow for application ``APP``.
 
@@ -56,19 +62,19 @@ The application configuration will be saved to the local file if the request is 
 You should check the data you've provided to the library during application configuration if you see any errors in the browser.
 ::
 
-    coaclient config check-auth --app APP
+    coaclient config check-auth --app APP_NAME
 
 Checks whether the current instance can authorize against Coursera's API server for application ``APP``
 ::
 
-    coaclient config display-auth-cache --app APP
+    coaclient config display-auth-cache --app APP_NAME
 
 Shows authorization cache for app. The auth and refresh tokens are truncated for security purposes.
 If you want to display them, you can add ``--no-truncate option``. Don't pass your tokens to the third parties!
 
 ::
 
-    coaclient config delete --app APP
+    coaclient config delete --app APP_NAME
 
 Delete the application from configuration file if the application exists.
 
@@ -80,13 +86,14 @@ Returns the current version of the library
 Examples:
 ::
 
-    coaclient config version
+    coaclient version
 
 loglevel
 ^^^^^^^^
 You can suppress output or get more detailed information by choosing a log level.
-It can be done by specifying the optional --loglevel(-l) parameter.
-Valid choices are INFO, DEBUG, WARNING, ERROR, TRACE. Default loglevel is INFO.
+It can be done by specifying the optional ``--log-level(-l)`` parameter.
+Valid choices are ``INFO``, ``DEBUG``, ``WARNING``, ``ERROR``, ``CRITICAL``.
+Default loglevel is ``INFO``.
 
 Usage
 -----------
@@ -98,7 +105,7 @@ Usage
   ...
   app = 'my_application_name'
   url = 'https://api.coursera.org/api/externalBasicProfiles.v1?q=me&fields=name'
-  auth = oauth2.build_oauth2(app=app).build_authorizer()
+  auth = oauth2.build(app=app).authorizer
   response = requests.get(url, auth=auth)
   print response.json()
 
