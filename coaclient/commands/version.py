@@ -1,4 +1,4 @@
-# Copyright 2020 Coursera
+# Copyright 2020-2021 Coursera
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import sys
 
 from coaclient import __version__
 from coaclient.cli import Parser
-
 from coaclient.log import LogLevels
 
 __all__ = (
@@ -38,7 +37,7 @@ def version(args):
     """
     Output the application version
     """
-    msg = "Your {prog}'s version is: {version}s".format(
+    msg = "Your {prog}'s version is: {version}".format(
         prog=sys.argv[0].split('/')[-1], version=__version__
     )
     if args.log_level in _LOGS_LEVELS:

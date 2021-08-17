@@ -34,7 +34,7 @@ Command Line Interface
 
 The project includes a command-line tool. Run::
 
-    coaclient -h
+    coaclient --help
 
 for a complete list of features, flags, and documentation.
 
@@ -103,11 +103,11 @@ Usage
   import requests
   from coaclient import oauth2
   ...
-  app = 'my_application_name'
+  app_name = 'my_application_name'
   url = 'https://api.coursera.org/api/externalBasicProfiles.v1?q=me&fields=name'
-  auth = oauth2.build(app=app).authorizer
+  auth = oauth2.build(app_name=app_name).authorizer
   response = requests.get(url, auth=auth)
-  print response.json()
+  print(response.json())
 
 If ``my_application_name`` was successfully configured, you will be able to
 successfully make a request. Otherwise, an exception will be thrown telling you

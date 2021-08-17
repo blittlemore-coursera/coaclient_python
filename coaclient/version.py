@@ -1,4 +1,4 @@
-# Copyright 2020 Coursera
+# Copyright 2020-2021 Coursera
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,4 +15,4 @@
 Coursera OAuth2.0 version file
 """
 
-__version__ = '1.1.0'
+__version__ = '1.2.0'

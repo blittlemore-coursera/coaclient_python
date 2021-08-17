@@ -1,4 +1,4 @@
-# Copyright 2020 Coursera
+# Copyright 2020-2021 Coursera
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import os
 from configparser import ConfigParser
 from typing import Optional
 
-from .settings import (
+from coaclient.oauth2.settings import (
     OAUTH2_CONFIG_PATH,
     OAUTH2_CONFIG_FILE_NAME,
     OAUTH2_HOSTNAME,
@@ -29,7 +29,7 @@ from .settings import (
     OAUTH2_VERIFY_TLS,
     OAUTH2_TOKEN_CACHE_PATH,
 )
-from .utils import make_or_check_dir
+from coaclient.oauth2.utils import make_or_check_dir
 
 
 class Config(ConfigParser):
@@ -61,9 +61,7 @@ class Config(ConfigParser):
         """
         Set defaults values for the main OAuth2.0 section
         """
-        if force is True or not super(Config, self).has_section(
-                self.OAUTH2_SECTION
-        ):
+        if force is True or not super().has_section(self.OAUTH2_SECTION):
             self[self.OAUTH2_SECTION] = dict(
                 hostname=OAUTH2_HOSTNAME,
                 port=OAUTH2_PORT,
@@ -88,4 +86,4 @@ class Config(ConfigParser):
         """
         if section == self.OAUTH2_SECTION:
             return False
-        return super(Config, self).has_section(section)
+        return super().has_section(section)

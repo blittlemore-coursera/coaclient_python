@@ -1,4 +1,4 @@
-# Copyright 2020 Coursera
+# Copyright 2020-2021 Coursera
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ Coursera OAuth2.0 client library
 
 from .client import build
 from .config import Config
-
 
 __all__ = (
     "build",

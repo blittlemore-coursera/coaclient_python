@@ -22,7 +22,7 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3',
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     keywords='coursera sdk cli tool oauth2',
     url='https://github.com/blittlemore-coursera/coaclient/',
     author='Ievgen Arbuznykov, Anton Makrushyn',
@@ -36,6 +36,7 @@ setup(
     packages=[
         'coaclient',
         'coaclient.commands',
+        'coaclient.exceptions',
         'coaclient.cli',
         'coaclient.oauth2'
     ],

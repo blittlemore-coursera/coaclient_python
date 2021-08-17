@@ -1,4 +1,4 @@
-# Copyright 2020 Coursera
+# Copyright 2020-2021 Coursera
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ from urllib.parse import urlparse, parse_qs
 
 import status
 
-from .exceptions import OAuth2CacheException, OAuth2ConfigError
+from coaclient.exceptions import OAuth2CacheException, OAuth2ConfigError
 
 __all__ = (
     "validate_input_data",
@@ -33,9 +33,9 @@ __all__ = (
 
 
 def validate_input_data(
-        message: str,
-        empty: bool = True,
-        num_of_repeat: int = 3
+    message: str,
+    empty: bool = True,
+    num_of_repeat: int = 3
 ):
     """
     Validation of input user data from CLI

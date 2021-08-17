@@ -1,4 +1,4 @@
-# Copyright 2020 Coursera
+# Copyright 2020-2021 Coursera
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,16 +26,15 @@ import requests
 
 from coaclient import oauth2
 from coaclient.cli import Parser, SubParser, Arg, Actions
+from coaclient.exceptions import CoaClientCommandException
 from coaclient.oauth2 import Config
 from coaclient.oauth2.utils import validate_input_data
-from .exceptions import CoaClientCommandException
 
 __all__ = (
     "add_command",
 )
 
-
-_REGEXP_FILE_NAME = re.compile(r'[^\w\-\_.]')
+_REGEXP_FILE_NAME = re.compile(r"[^\w\-\_.]")
 
 
 def add_app(args):
@@ -123,11 +122,11 @@ def check_auth(args):
     )
 
     if response.status_code != requests.codes.ok:  # pylint: disable=no-member
-        logging.error('Received response status code %s from the basic '
-                      'profile API.', response.status_code)
-        logging.debug('Response body: %s', response.text)
-        raise Exception('Received response status code {code} from the basic '
-                        'profile API.'.format(code=response.status_code))
+        logging.error("Received response status code %s from the basic "
+                      "profile API.", response.status_code)
+        logging.debug("Response body: %s", response.text)
+        raise Exception("Received response status code {code} from the basic "
+                        "profile API.".format(code=response.status_code))
 
     response_data = response.json()
 
@@ -146,7 +145,7 @@ def check_auth(args):
 
         if external_id is None:
             raise CoaClientCommandException(
-                "Could not find the 'external_id' from the response body. "
+                "Could not find the \"external_id\" from the response body. "
                 "Data: {element}".format(element=element)
             )
 
@@ -154,7 +153,7 @@ def check_auth(args):
 
         if name is None:
             raise CoaClientCommandException(
-                "Could not find the 'name' from the response body. Data: "
+                "Could not find the \"name\" from the response body. Data: "
                 "{element}".format(element=element)
             )
 
@@ -179,21 +178,19 @@ def display_auth_cache(args):
     """
     auth = oauth2.build(args.app, args=args)
 
-    token = auth.cache.get('token', '')
-    expires = auth.cache.get('expires', 0.0) - time.time()
-    refresh = auth.cache.get('refresh', None)
+    token = auth.cache.get("token", "")
+    expires = auth.cache.get("expires", 0.0) - time.time()
+    refresh = auth.cache.get("refresh", None)
     if not args.no_truncate:
         token = "{}**********{}".format(token[:3], token[-3:])
         if refresh is not None:
             refresh = "{}**********{}".format(refresh[:3], refresh[-3:])
 
     logging.info("Authorization token: %s", token)
-    logging.info(
-        "Authorization token is already expired."
-        if expires < 0 else
-        "Authorization token expires in %.2f seconds",
-        expires
-    )
+    if expires < 0:
+        logging.info("Authorization token is already expired.")
+    else:
+        logging.info("Authorization token expires in %.2f seconds", expires)
     if refresh is not None:
         logging.info("Refresh token: %s", refresh)
     else:
@@ -273,6 +270,11 @@ def add_command(cli_factory):
         action=Actions.APPEND,
         type=str,
         help="Application scopes. (E.g: view_profile or access_business_api)"
+    ), is_callback_server=Arg(
+        flags=("--is-no-callback-server",),
+        action=Actions.STORE_TRUE,
+        help="Use callback server for processing authorization code "
+             "received from Coursera."
     ))
 
     # Create sub commands for config command
@@ -282,7 +284,7 @@ def add_command(cli_factory):
         func=add_app,
         help="Adding configuration and credentials for a specific application "
              "for authorizing in Coursera OAuth2.0 client.",
-        args=['app', 'reconfigure', 'client_id', 'client_secret', 'scopes']
+        args=["app", "reconfigure", "client_id", "client_secret", "scopes"]
     ))
     # 2. authorize
     config.subparser.parsers.append(Parser(
@@ -290,7 +292,7 @@ def add_command(cli_factory):
         func=authorize,
         help="Authorizes Coursera OAuth2.0 client for a specific application"
              " for using coursera.org API",
-        args=['app', ]
+        args=["app", "is_callback_server"]
     ))
     # 3. check-auth
     config.subparser.parsers.append(Parser(
@@ -298,7 +300,7 @@ def add_command(cli_factory):
         func=check_auth,
         help="Check Coursera OAuth2.0 client connectivity to the coursera.org "
              "API for a specific application",
-        args=['app', ]
+        args=["app", ]
     ))
     # 4. display-auth-cache
     config.subparser.parsers.append(Parser(
@@ -308,7 +310,7 @@ def add_command(cli_factory):
              "BEWARE: DO NOT send them to third-party service or via "
              "email!!!\nYou must keep the tokens secure.\nTreat them as "
              "passwords.",
-        args=['app', 'no_truncate']
+        args=["app", "no_truncate"]
     ))
     # 5. delete
     config.subparser.parsers.append(Parser(
@@ -316,5 +318,5 @@ def add_command(cli_factory):
         func=delete,
         help="Delete the application from configuration file if the "
              "application exists",
-        args=['app', ]
+        args=["app", ]
     ))

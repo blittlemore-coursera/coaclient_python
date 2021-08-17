@@ -1,4 +1,4 @@
-# Copyright 2020 Coursera
+# Copyright 2020-2021 Coursera
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,29 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Coaclient commands
+CoaClient commands exceptions
 """
+
+from coaclient.exceptions.base import CoaClientBaseException
+
 __all__ = (
     "CoaClientCommandException",
 )
 
 
-class _CoaClientBaseException(Exception):
-    """ Base exception class for coaclient exception """
-    _STR = None
-
-    def __init__(self, message: str, *args):
-        self.message = message
-        super(_CoaClientBaseException, self).__init__(message, *args)
-
-    def __str__(self):
-        if self._STR is None:
-            return super(_CoaClientBaseException, self).__str__()
-        return self._STR.format(
-            message=self.message
-        )
-
-
-class CoaClientCommandException(_CoaClientBaseException):
+class CoaClientCommandException(CoaClientBaseException):
     """ coaclient exception class for custom exception """
     _STR = "CoaClient command exception: {message}"

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2020 Coursera
+# Copyright 2020-2021 Coursera
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,14 +25,14 @@ from coaclient import (
 from coaclient.cli import (
     CLIFactory, Arg, Parser, SubParser
 )
-from coaclient.commands.exceptions import CoaClientCommandException
-from coaclient.log import add_logging
-from coaclient.oauth2.exceptions import (
+from coaclient.exceptions import (
+    CoaClientCommandException,
     OAuth2ClientException,
     OAuth2ConfigError,
     OAuth2CacheException,
     OAuth2TokenExpiredError
 )
+from coaclient.log import add_logging
 
 
 def build_cli():
@@ -87,11 +87,11 @@ def main():
                "Please see in `coaclient --help` how to use coaclient.\n"
         )
     except (
-            CoaClientCommandException,
-            OAuth2ClientException,
-            OAuth2ConfigError,
-            OAuth2CacheException,
-            OAuth2TokenExpiredError
+        CoaClientCommandException,
+        OAuth2ClientException,
+        OAuth2ConfigError,
+        OAuth2CacheException,
+        OAuth2TokenExpiredError
     ) as err:
         status, message = (1, "{err}\n".format(err=str(err)))
     finally:

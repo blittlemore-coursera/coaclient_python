@@ -1,4 +1,4 @@
-# Copyright 2020 Coursera
+# Copyright 2020-2021 Coursera
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Coursera OAuth2.0 client library
+CoaClient OAuth2.0 exceptions
 """
+from coaclient.exceptions.base import CoaClientBaseException
+
 __all__ = (
     "OAuth2ClientException",
     "OAuth2ConfigError",
@@ -22,36 +24,20 @@ __all__ = (
 )
 
 
-class _OAuth2BaseException(Exception):
-    """ Base exception class for custom exception """
-    _STR = None
-
-    def __init__(self, message: str, *args):
-        self.message = message
-        super(_OAuth2BaseException, self).__init__(message, *args)
-
-    def __str__(self):
-        if self._STR is None:
-            return super(_OAuth2BaseException, self).__str__()
-        return self._STR.format(
-            message=self.message
-        )
-
-
-class OAuth2ClientException(_OAuth2BaseException):
+class OAuth2ClientException(CoaClientBaseException):
     """ OAuth2.0 client exception class for custom exception """
     _STR = "Coursera OAuth2.0 client exception by OAuth2.0 protocol: {message}"
 
 
-class OAuth2ConfigError(_OAuth2BaseException):
+class OAuth2ConfigError(CoaClientBaseException):
     """ Coursera OAuth2.0 Config custom error class """
     _STR = "Coursera OAuth2.0 configuration error: {message}"
 
 
-class OAuth2CacheException(_OAuth2BaseException):
+class OAuth2CacheException(CoaClientBaseException):
     """ Coursera OAuth2.0 Cache custom exception class """
 
 
-class OAuth2TokenExpiredError(_OAuth2BaseException):
+class OAuth2TokenExpiredError(CoaClientBaseException):
     """ OAuth2.0 token expired error class """
     _STR = "Coursera OAuth2.0 token expired error: {message}"

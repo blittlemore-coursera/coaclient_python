@@ -12,12 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Commands and their implementations for Coursera's OAuth2 client.
+CoaClient exceptions
 """
-from coaclient.commands import config
-from coaclient.commands import version
+from coaclient.exceptions.base import CoaClientBaseException
+from coaclient.exceptions.commands import CoaClientCommandException
+from coaclient.exceptions.oauth2 import (
+    OAuth2ClientException,
+    OAuth2ConfigError,
+    OAuth2CacheException,
+    OAuth2TokenExpiredError
+)
 
 __all__ = (
-    "config",
-    "version"
+    "CoaClientBaseException",
+    "OAuth2ClientException",
+    "OAuth2ConfigError",
+    "OAuth2CacheException",
+    "OAuth2TokenExpiredError",
+    "CoaClientCommandException",
 )

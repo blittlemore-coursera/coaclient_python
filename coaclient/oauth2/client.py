@@ -1,4 +1,4 @@
-# Copyright 2020 Coursera
+# Copyright 2020-2021 Coursera
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,12 +38,12 @@ from typing import (
 import requests
 from requests.auth import AuthBase
 
-from .config import Config
-from .exceptions import (
+from coaclient.exceptions import (
     OAuth2ConfigError,
     OAuth2ClientException,
     OAuth2TokenExpiredError
 )
+from coaclient.oauth2.config import Config
 from .settings import (
     OAUTH2_AUTH_ENDPOINT,
     OAUTH2_TOKEN_ENDPOINT,
@@ -67,15 +67,15 @@ __all__ = (
 
 
 def build(
-        app_name: str,
-        *,
-        args: Optional[Namespace] = None,
-        config: Optional[ConfigParser] = None,
-        client_id: Optional[str] = None,
-        client_secret: Optional[str] = None,
-        scopes: Optional[Union[List[str], str]] = None,
-        token_cache_file: Optional[str] = None,
-        **kwargs
+    app_name: str,
+    *,
+    args: Optional[Namespace] = None,
+    config: Optional[ConfigParser] = None,
+    client_id: Optional[str] = None,
+    client_secret: Optional[str] = None,
+    scopes: Optional[Union[List[str], str]] = None,
+    token_cache_file: Optional[str] = None,
+    **kwargs
 ):
     """
     Creates a Coursera OAuth client based on the saved or provided
@@ -99,6 +99,16 @@ def build(
                 "`coaclient` cli tool or provide configuration via config "
                 "file prior to use.".format(app_name=app_name)
             )
+
+    if (
+        args is not None and
+        hasattr(args, "is_no_callback_server") and
+        args.is_no_callback_server is not None
+    ):
+        if "is_server_callback" not in kwargs:
+            kwargs.update({
+                "is_server_callback": not args.is_no_callback_server
+            })
 
     return CourseraOAuth2(
         app_name,
@@ -162,17 +172,17 @@ class CourseraOAuth2:
     _LINUX = "linux"
 
     def __init__(
-            self,
-            app_name: str,
-            *,
-            config: Optional[Config] = None,
-            client_id: Optional[str] = None,
-            client_secret: Optional[str] = None,
-            scopes: Optional[Union[List[str], str]] = None,
-            token_cache_file: Optional[str] = None,
-            verify_tls: Optional[bool] = None,
-            is_server_callback: bool = True,
-            client_class: Type = CourseraOAuth2Client
+        self,
+        app_name: str,
+        *,
+        config: Optional[Config] = None,
+        client_id: Optional[str] = None,
+        client_secret: Optional[str] = None,
+        scopes: Optional[Union[List[str], str]] = None,
+        token_cache_file: Optional[str] = None,
+        verify_tls: Optional[bool] = None,
+        is_server_callback: bool = True,
+        client_class: Type = CourseraOAuth2Client
     ) -> None:
         self.app_name = app_name
         self._config = config or Config.load_from_file()
@@ -240,6 +250,7 @@ class CourseraOAuth2:
 
     def _load_cache(self) -> Optional[Dict[str, Any]]:
         """ Reads the local file cache to get pre-authorized access tokens """
+        cache = None
         try:
             logging.debug('Reading from local file cache: %s',
                           self._token_cache_file)
@@ -248,14 +259,16 @@ class CourseraOAuth2:
                 if self._cache_is_valid(cache):
                     logging.debug('Loaded from file system: %s', cache)
                 else:
-                    logging.warning('Unexpected value found in cache: %s', cache)
-            return cache
+                    logging.warning(
+                        'Unexpected value found in cache: %s', cache
+                    )
         except IOError:
             logging.debug("The cache file doesn't exist in the file system: "
                           "%s", self._token_cache_file)
-        except Exception as err:
+        except Exception as err:  # pylint: disable=W0703
             logging.exception('Unknown cache load exception detected: %s',
                               str(err), exc_info=True)
+        return cache
 
     @cache.setter
     def cache(self, cache: Dict[str, Any]):
@@ -275,7 +288,7 @@ class CourseraOAuth2:
                 pickle.dump(cache, file_descriptor, protocol=-1)
                 logging.debug('OAuth2.0 tokens successfully saved to '
                               'the cache file.')
-        except Exception as err:
+        except Exception as err:  # pylint: disable=W0703
             logging.exception("Couldn't successfully cache OAuth2 tokens to "
                               "the cache file: %s", str(err), exc_info=True)
 
@@ -330,7 +343,7 @@ class CourseraOAuth2:
                          'the url in your default browser...')
             try:
                 subprocess.check_call(['open', auth_url])
-            except Exception as err:
+            except Exception as err:  # pylint: disable=W0703
                 logging.exception('Could not call `open %s`. Exception: %s',
                                   auth_url, str(err))
         elif sys.platform == self._LINUX:
@@ -338,11 +351,11 @@ class CourseraOAuth2:
                          'the url in your default browser...')
             try:
                 webbrowser.open(auth_url)
-            except (TypeError, Exception) as err:
+            except (TypeError, Exception) as err:  # pylint: disable=W0703
                 logging.exception('Could not call `open %s`. Exception: %s',
                                   auth_url, str(err))
 
-        if self._port is not None:
+        if self._port is not None and self._is_server_callback is True:
             # Boot up a local webserver to retrieve the response.
             code = CallbackCodeHolder()
             handler = CourseraOAuth2CallbackHandler
@@ -368,7 +381,7 @@ class CourseraOAuth2:
         })
 
     def _get_tokens_from_coursera(
-            self, data: Dict[str, Any]
+        self, data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Send the request to the Coursera token endpoint
@@ -385,7 +398,8 @@ class CourseraOAuth2:
         logging.debug('Response from token endpoint: (%s) %s',
                       response.status_code, response.text)
 
-        if response.status_code != requests.codes.ok:  # pylint: disable=no-member
+        # pylint: disable=no-member
+        if response.status_code != requests.codes.ok:
             logging.error(
                 'Encountered unexpected status code. Status code: %s '
                 'Response text: %s Response %s',
@@ -420,13 +434,13 @@ class CourseraOAuth2:
             if refresh_token is not None and isinstance(refresh_token, str):
                 tokens['refresh'] = refresh_token
             return tokens
-        except (KeyError, TypeError, AttributeError):
+        except (KeyError, TypeError, AttributeError) as error:
             logging.error('Some fields malformed or missing in the '
                           'response data. %s', response_data)
             raise OAuth2ClientException(
                 'Some fields malformed or missing in the response data. '
                 '{response_data}'.format(response_data=response_data)
-            )
+            ) from error
 
     def _exchange_refresh_tokens(self) -> Optional[Dict[str, Any]]:
         """

@@ -1,4 +1,4 @@
-# Copyright 2020 Coursera
+# Copyright 2020-2021 Coursera
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Coaclient Parsers description for CLI factory
+CoaClient Parsers description for CLI factory
 """
 
 from argparse import ArgumentParser, HelpFormatter
 from dataclasses import dataclass, field, asdict
 from typing import (
     Optional,
-    List, Dict, Any
+    List,
+    Dict,
+    Any
 )
 
 from coaclient.cli.formatters import RawTextArgsHelpFormatter
@@ -46,9 +48,9 @@ class BaseParser:
         return list()
 
     def asdict(
-            self,
-            exclude: Optional[List[str]] = None,
-            **kwargs
+        self,
+        exclude: Optional[List[str]] = None,
+        **kwargs
     ) -> Dict[str, Any]:
         """
         Convert instance to the dictionary

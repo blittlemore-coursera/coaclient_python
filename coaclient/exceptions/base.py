@@ -12,12 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Commands and their implementations for Coursera's OAuth2 client.
+CoaClient base exception
 """
-from coaclient.commands import config
-from coaclient.commands import version
-
 __all__ = (
-    "config",
-    "version"
+    "CoaClientBaseException",
 )
+
+
+class CoaClientBaseException(Exception):
+    """ Base exception class for custom exception """
+    _STR = None
+
+    def __init__(self, message: str, *args):
+        self.message = message
+        super().__init__(message, *args)
+
+    def __str__(self):
+        if self._STR is None:
+            return super().__str__()
+        return self._STR.format(
+            message=self.message
+        )

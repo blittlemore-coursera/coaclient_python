@@ -1,4 +1,4 @@
-# Copyright 2020 Coursera
+# Copyright 2020-2021 Coursera
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Coaclient CLI factory description
+CoaClient CLI factory description
 """
 
 from argparse import ArgumentParser
 from dataclasses import asdict
 from typing import List, Optional
 
-from .args import Arg
-from .parsers import Parser
+from coaclient.cli.args import Arg
+from coaclient.cli.parsers import Parser
 
 
 class CLIFactory:
@@ -29,10 +29,10 @@ class CLIFactory:
     """
 
     def __init__(
-            self,
-            parser,
-            *,
-            args=None
+        self,
+        parser,
+        *,
+        args=None
     ):
         self._parser = parser
         self._args = args or {}
@@ -54,9 +54,9 @@ class CLIFactory:
             self._args[arg_name] = arg_conf
 
     def _setup_arguments(
-            self,
-            parser: ArgumentParser,
-            args: List[str]
+        self,
+        parser: ArgumentParser,
+        args: List[str]
     ) -> None:
         for arg_name in args:
             arg_config = self._args.get(arg_name)
@@ -69,9 +69,9 @@ class CLIFactory:
             parser.add_argument(*arg_config.flags, **kwargs)
 
     def _setup_subparsers(
-            self,
-            parser: ArgumentParser,
-            parser_config: Parser
+        self,
+        parser: ArgumentParser,
+        parser_config: Parser
     ) -> None:
         subparsers = parser.add_subparsers(**parser_config.subparser.asdict())
         for p_config in parser_config.subparser.parsers:
